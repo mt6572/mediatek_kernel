@@ -90,8 +90,11 @@
 #define MAG_PL_DEV_NAME                 "m_mag_pl"
 #define MAG_INPUTDEV_NAME               "m_mag_input"
 #define MAG_MISC_DEV_NAME               "m_mag_misc"
-
+#define GYRO_PL_DEV_NAME                	"m_gyro_pl"
+#define GYRO_INPUTDEV_NAME              	"m_gyro_input"
+#define GYRO_MISC_DEV_NAME              	"m_gyro_misc"
 #define EVENT_TYPE_SENSOR				0x01
+
 #define EVENT_SENSOR_ACCELERATION		SENSOR_ACCELEROMETER
 #define EVENT_SENSOR_MAGNETIC			SENSOR_MAGNETIC
 #define EVENT_SENSOR_ORIENTATION		SENSOR_ORIENTATION
