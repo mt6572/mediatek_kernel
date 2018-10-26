@@ -46,16 +46,15 @@
 struct hwmsen_object {
     void *self;
 	int polling;
-	int (*sensor_operate)(void* self, uint32_t command, void* buff_in, int size_in,
-		void* buff_out, int size_out, int* actualout);
+	int (*sensor_operate) (void *self, uint32_t command, void *buff_in, int size_in,
+			       void *buff_out, int size_out, int *actualout);
 };
 
-struct sensor_init_info
-{
-    char *name;
-	int (*init)(void);
-	int (*uninit)(void);
-	struct platform_driver* platform_diver_addr;
+struct sensor_init_info {
+	char *name;
+	int (*init) (void);
+	int (*uninit) (void);
+	struct platform_driver *platform_diver_addr;
 };
 
 
@@ -65,15 +64,15 @@ extern int hwmsen_detach(int sensor);
 extern int hwmsen_get_interrupt_data(int sensor, hwm_sensor_data *data);
 
 #if defined(MTK_AUTO_DETECT_ACCELEROMETER)//
-extern int hwmsen_gsensor_add(struct sensor_init_info* obj) ;
+extern int hwmsen_gsensor_add(struct sensor_init_info *obj) ;
 #endif
 
 #if defined(MTK_AUTO_DETECT_MAGNETOMETER)
-extern int hwmsen_msensor_add(struct sensor_init_info* obj);
+extern int hwmsen_msensor_add(struct sensor_init_info *obj);
 #endif
 
 #if defined(MTK_AUTO_DETECT_ALSPS)
-extern int hwmsen_alsps_sensor_add(struct sensor_init_info* obj);
+extern int hwmsen_alsps_sensor_add(struct sensor_init_info *obj);
 #endif
 /*----------------------------------------------------------------------------*/
 #endif 

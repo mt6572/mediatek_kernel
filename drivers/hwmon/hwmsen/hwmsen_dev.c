@@ -224,7 +224,7 @@ static void hwmsen_work_func(struct work_struct *work)
 		else
 		{
 			if((idx == ID_LIGHT) ||(idx == ID_PRESSURE) 
-			||(idx == ID_PROXIMITY) || (idx == ID_TEMPRERATURE)||(idx == ID_STEP_COUNTER)|| (idx == ID_RELATIVE_HUMIDITY))
+			||(idx == ID_PROXIMITY) || (idx == ID_TEMPRERATURE))
 			{
 				// data changed, update the data
 				if(sensor_data.values[0] != obj_data.sensors_data[idx].values[0])
@@ -292,7 +292,7 @@ static void hwmsen_work_func(struct work_struct *work)
 	       	  }
 	       }
 
-		   if(ID_PROXIMITY==idx || ID_LIGHT==idx || ID_PRESSURE==idx||idx == ID_STEP_COUNTER|| ID_TEMPRERATURE==idx|| ID_RELATIVE_HUMIDITY==idx)
+		   if(ID_PROXIMITY==idx || ID_LIGHT==idx || ID_PRESSURE==idx)
 	       {
 	          if(SENSOR_INVALID_VALUE == obj_data.sensors_data[idx].values[0])
 	          {
@@ -350,7 +350,7 @@ int hwmsen_get_interrupt_data(int sensor, hwm_sensor_data *data)
 		time = get_monotonic_coarse(); 
 		nt = time.tv_sec*1000000000LL+time.tv_nsec;  
 		if((sensor == ID_LIGHT) ||(sensor == ID_PRESSURE) 
-			||(sensor == ID_PROXIMITY) || (sensor == ID_TEMPRERATURE)||(sensor == ID_STEP_COUNTER)|| (sensor == ID_RELATIVE_HUMIDITY))
+			||(sensor == ID_PROXIMITY) || (sensor == ID_TEMPRERATURE))
 		{
 			// data changed, update the data
 			if(data->values[0] != obj_data.sensors_data[sensor].values[0])
@@ -420,6 +420,11 @@ static struct hwmdev_object *hwmsen_alloc_object(void)
 	atomic_set(&obj->delay, 200); /*5Hz*/// set work queue delay time 200ms
 	atomic_set(&obj->wake, 0);
 	sensor_workqueue = create_singlethread_workqueue("sensor_polling");
+    if (!sensor_workqueue)
+    {
+        kfree(obj);
+        return NULL;
+    }
 	INIT_WORK(&obj->report, hwmsen_work_func);
 	init_timer(&obj->timer);
 	obj->timer.expires	= jiffies + atomic_read(&obj->delay)/(1000/HZ);
@@ -543,7 +548,7 @@ static int hwmsen_enable(struct hwmdev_object *obj, int sensor, int enable)
 				}
 				
 			}
-
+			update_workqueue_polling_rate(200);
 			atomic_set(&cxt->enable, 1);			
 		}
 
@@ -558,7 +563,7 @@ static int hwmsen_enable(struct hwmdev_object *obj, int sensor, int enable)
 		}
 		
 	}
-	else
+	else if ((enable == 0))
 	{
 //{@for mt6582 blocking issue work around
 		if(sensor == 7){
@@ -677,7 +682,7 @@ static int hwmsen_set_delay(int delay, int handle )
 	{
 	  HWM_ERR("have no this sensor %d or operator point is null!\r\n", handle);
 	}
-	else if(atomic_read(&cxt->enable) != 0)
+	else //if(atomic_read(&cxt->enable) != 0) //always update delay even sensor is not enabled.
 	{
 		if(cxt->obj.sensor_operate(cxt->obj.self, SENSOR_DELAY, &delay,sizeof(int), NULL, 0, NULL) != 0)
 		{
@@ -868,17 +873,17 @@ static ssize_t hwmsen_store_trace(struct device* dev,
 static ssize_t hwmsen_show_sensordevnum(struct device *dev, 
                                   struct device_attribute *attr, char *buf)
 {
-	char *devname = NULL;
+	const char *devname = NULL;
 		devname = dev_name(&hwm_obj->idev->dev);
 
 	return snprintf(buf, PAGE_SIZE, "%s\n", devname+5);
 }
-DEVICE_ATTR(hwmdev,     S_IWUSR | S_IRUGO, hwmsen_show_hwmdev, NULL);
+DEVICE_ATTR(hwmdev,     S_IRUGO, hwmsen_show_hwmdev, NULL);
 DEVICE_ATTR(active,     S_IWUSR | S_IRUGO, hwmsen_show_hwmdev, hwmsen_store_active);
 DEVICE_ATTR(delay,      S_IWUSR | S_IRUGO, hwmsen_show_delay,  hwmsen_store_delay);
 DEVICE_ATTR(wake,       S_IWUSR | S_IRUGO, hwmsen_show_wake,   hwmsen_store_wake);
 DEVICE_ATTR(trace,      S_IWUSR | S_IRUGO, hwmsen_show_trace,  hwmsen_store_trace);
-DEVICE_ATTR(hwmsensordevnum,      S_IWUSR | S_IRUGO, hwmsen_show_sensordevnum,  NULL);
+DEVICE_ATTR(hwmsensordevnum,      S_IRUGO, hwmsen_show_sensordevnum,  NULL);
 /*----------------------------------------------------------------------------*/
 static struct device_attribute *hwmsen_attr_list[] =
 {
@@ -942,7 +947,7 @@ static int init_static_data(void)
 //	obj_data.lock = __MUTEX_INITIALIZER(obj_data.lock);	
 	for(i=0; i < MAX_ANDROID_SENSOR_NUM; i++)
 	{
-		dev_cxt.cxt[i] = NULL;		
+		//dev_cxt.cxt[i] = NULL;		
 		memset(&obj_data.sensors_data[i], SENSOR_INVALID_VALUE, sizeof(hwm_sensor_data));
 		obj_data.sensors_data[i].sensor = i;
 		
@@ -1062,7 +1067,7 @@ static long hwmsen_unlocked_ioctl(struct file *fp, unsigned int cmd, unsigned lo
 		HWM_ERR("null pointer!!\n");
 		return -EINVAL;
 	}
-       printk(" heyong hwmsen_unlocked_ioctl = %d\n", cmd);
+
 	switch(cmd)
 	{
 		case HWM_IO_SET_DELAY:
@@ -1600,8 +1605,9 @@ static void __exit hwmsen_exit(void)
 	platform_driver_unregister(&hwmsen_driver);    
 }
 /*----------------------------------------------------------------------------*/
-module_init(hwmsen_init);
-module_exit(hwmsen_exit);
+late_initcall(hwmsen_init);
+//module_init(hwmsen_init);
+//module_exit(hwmsen_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("sensor device driver");
 MODULE_AUTHOR("Chunlei Wang<chunlei.wang@mediatek.com");
